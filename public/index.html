@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>codex-LLM</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #10141d;
+      color: #eef2f7;
+      font-family: Segoe UI, Arial, sans-serif;
+      padding: 20px;
+    }
+    main {
+      width: min(860px, 100%);
+      margin: 0 auto;
+      display: grid;
+      gap: 12px;
+    }
+    section {
+      border: 1px solid #2c384b;
+      border-radius: 8px;
+      background: #171e2b;
+      padding: 14px;
+    }
+    h1 { margin: 0 0 6px; font-size: 22px; }
+    p { margin: 0; color: #9aa8ba; }
+    textarea, input, button {
+      font: inherit;
+      border-radius: 7px;
+      border: 1px solid #34445a;
+      background: #0e1521;
+      color: #eef2f7;
+    }
+    textarea {
+      width: 100%;
+      min-height: 96px;
+      padding: 10px;
+      resize: vertical;
+    }
+    input {
+      width: 100%;
+      min-height: 38px;
+      padding: 0 10px;
+    }
+    button {
+      min-height: 40px;
+      padding: 0 14px;
+      cursor: pointer;
+      font-weight: 700;
+      background: #087c99;
+      border-color: #20b8dc;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+    .meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      color: #9aa8ba;
+      font-size: 13px;
+    }
+    .badge {
+      border: 1px solid #34445a;
+      border-radius: 999px;
+      padding: 5px 8px;
+      background: #0e1521;
+    }
+    #output {
+      min-height: 220px;
+      white-space: pre-wrap;
+      line-height: 1.45;
+      border: 1px solid #2c384b;
+      border-radius: 8px;
+      padding: 12px;
+      background: #0c121c;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <h1>codex-LLM</h1>
+      <p>Teste LLM-only com streaming SSE ao vivo.</p>
+    </section>
+
+    <section class="meta">
+      <span id="model" class="badge">modelo: ...</span>
+      <span id="auth" class="badge">auth: ...</span>
+      <span id="pool" class="badge">pool: ...</span>
+      <span id="status" class="badge">parado</span>
+    </section>
+
+    <section>
+      <label for="threadId">threadId</label>
+      <input id="threadId" value="demo">
+      <br><br>
+      <label for="text">Pergunta</label>
+      <textarea id="text">Explique em uma frase como este streaming funciona.</textarea>
+      <br><br>
+      <div class="row">
+        <span></span>
+        <button id="send" type="button">Enviar SSE</button>
+      </div>
+    </section>
+
+    <section>
+      <div id="output"></div>
+    </section>
+  </main>
+
+  <script>
+    const modelEl = document.getElementById("model");
+    const authEl = document.getElementById("auth");
+    const poolEl = document.getElementById("pool");
+    const statusEl = document.getElementById("status");
+    const outputEl = document.getElementById("output");
+    const threadEl = document.getElementById("threadId");
+    const textEl = document.getElementById("text");
+    const sendBtn = document.getElementById("send");
+
+    async function loadHealth() {
+      const res = await fetch("/api/health");
+      const data = await res.json();
+      modelEl.textContent = "modelo: " + data.model;
+      authEl.textContent = data.auth.hasAccessToken
+        ? "auth: access_token"
+        : data.auth.hasApiKey
+          ? "auth: api key"
+          : "auth: ausente";
+      const pool = data.auth.pool || {};
+      poolEl.textContent = `pool: ${pool.available || 0}/${pool.accounts || 0}`;
+    }
+
+    function parseSseChunk(buffer, onEvent) {
+      const parts = buffer.split(/\r?\n\r?\n/);
+      const rest = parts.pop() || "";
+      for (const raw of parts) {
+        const data = raw
+          .split(/\r?\n/)
+          .filter((line) => line.startsWith("data:"))
+          .map((line) => line.slice(5).trimStart())
+          .join("\n")
+          .trim();
+        if (data) onEvent(JSON.parse(data));
+      }
+      return rest;
+    }
+
+    async function send() {
+      outputEl.textContent = "";
+      statusEl.textContent = "conectando";
+      sendBtn.disabled = true;
+
+      try {
+        const res = await fetch("/api/chat/sse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            threadId: threadEl.value || "demo",
+            text: textEl.value
+          })
+        });
+
+        if (!res.ok || !res.body) throw new Error(await res.text());
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          buffer = parseSseChunk(buffer, (event) => {
+            if (event.type === "status") statusEl.textContent = event.detail || event.state;
+            if (event.type === "text_delta") outputEl.textContent += event.text;
+            if (event.type === "completed") statusEl.textContent = "completo";
+            if (event.type === "error") {
+              statusEl.textContent = "erro";
+              outputEl.textContent += "\n[erro] " + event.message;
+            }
+          });
+        }
+      } catch (error) {
+        statusEl.textContent = "erro";
+        outputEl.textContent = String(error.message || error);
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    sendBtn.addEventListener("click", send);
+    loadHealth().catch(() => {
+      modelEl.textContent = "modelo: erro";
+      authEl.textContent = "auth: erro";
+      poolEl.textContent = "pool: erro";
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "auth_mode": "chatgpt",
+  "tokens": {
+    "access_token": "cole-seu-access-token-aqui",
+    "id_token": "opcional",
+    "refresh_token": "opcional",
+    "account_id": "opcional"
+  }
+}
