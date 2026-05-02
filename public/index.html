@@ -28,6 +28,25 @@
     }
     h1 { margin: 0 0 6px; font-size: 22px; }
     p { margin: 0; color: #9aa8ba; }
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .chat-link {
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 7px;
+      border: 1px solid #20b8dc;
+      background: #087c99;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 700;
+      padding: 0 14px;
+    }
     textarea, input, button {
       font: inherit;
       border-radius: 7px;
@@ -87,8 +106,13 @@
 <body>
   <main>
     <section>
-      <h1>codex-LLM</h1>
-      <p>Teste LLM-only com streaming SSE ao vivo.</p>
+      <div class="top">
+        <div>
+          <h1>codex-LLM</h1>
+          <p>Teste LLM-only com streaming SSE ao vivo.</p>
+        </div>
+        <a class="chat-link" href="/chat.html">Abrir Chat</a>
+      </div>
     </section>
 
     <section class="meta">

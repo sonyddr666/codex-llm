@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>codex-LLM Chat</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #0f141d;
+      color: #eef2f7;
+      font-family: Segoe UI, Arial, sans-serif;
+    }
+    .app {
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      max-width: 960px;
+      margin: 0 auto;
+      border-left: 1px solid #243044;
+      border-right: 1px solid #243044;
+      background: #111824;
+    }
+    header {
+      padding: 14px 18px;
+      border-bottom: 1px solid #243044;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    h1 {
+      margin: 0;
+      font-size: 18px;
+    }
+    .meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      color: #9fb0c4;
+      font-size: 12px;
+    }
+    .badge {
+      border: 1px solid #32435a;
+      border-radius: 999px;
+      padding: 5px 8px;
+      background: #0d1420;
+    }
+    .messages {
+      overflow: auto;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .msg {
+      width: min(760px, 100%);
+      display: grid;
+      gap: 6px;
+    }
+    .msg.user {
+      align-self: flex-end;
+      justify-items: end;
+    }
+    .msg.assistant {
+      align-self: flex-start;
+      justify-items: start;
+    }
+    .role {
+      color: #9fb0c4;
+      font-size: 12px;
+      padding: 0 4px;
+    }
+    .bubble {
+      border: 1px solid #2e3e54;
+      border-radius: 8px;
+      padding: 11px 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .bubble.markdown {
+      white-space: normal;
+    }
+    .bubble.markdown h1,
+    .bubble.markdown h2,
+    .bubble.markdown h3 {
+      margin: 16px 0 8px;
+      line-height: 1.25;
+    }
+    .bubble.markdown h1:first-child,
+    .bubble.markdown h2:first-child,
+    .bubble.markdown h3:first-child,
+    .bubble.markdown p:first-child,
+    .bubble.markdown ul:first-child,
+    .bubble.markdown ol:first-child,
+    .bubble.markdown pre:first-child {
+      margin-top: 0;
+    }
+    .bubble.markdown h1 { font-size: 22px; }
+    .bubble.markdown h2 { font-size: 19px; }
+    .bubble.markdown h3 { font-size: 16px; color: #c7d7ea; }
+    .bubble.markdown p {
+      margin: 0 0 12px;
+    }
+    .bubble.markdown p:last-child,
+    .bubble.markdown ul:last-child,
+    .bubble.markdown ol:last-child,
+    .bubble.markdown pre:last-child {
+      margin-bottom: 0;
+    }
+    .bubble.markdown ul,
+    .bubble.markdown ol {
+      margin: 0 0 12px;
+      padding-left: 24px;
+    }
+    .bubble.markdown li {
+      margin: 4px 0;
+    }
+    .bubble.markdown code {
+      border: 1px solid #33445c;
+      border-radius: 5px;
+      background: #070d16;
+      color: #d7edf8;
+      padding: 1px 5px;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.92em;
+    }
+    .bubble.markdown pre {
+      margin: 0 0 12px;
+      padding: 10px;
+      border: 1px solid #33445c;
+      border-radius: 7px;
+      background: #070d16;
+      overflow: auto;
+      white-space: pre;
+    }
+    .bubble.markdown pre code {
+      border: 0;
+      padding: 0;
+      background: transparent;
+    }
+    .bubble.markdown blockquote {
+      margin: 0 0 12px;
+      padding-left: 12px;
+      border-left: 3px solid #20b8dc;
+      color: #c7d7ea;
+    }
+    .user .bubble {
+      background: #0b3142;
+      border-color: #17637d;
+    }
+    .assistant .bubble {
+      background: #0d1420;
+    }
+    .composer {
+      border-top: 1px solid #243044;
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+      background: #111824;
+    }
+    .composer-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+    textarea {
+      width: 100%;
+      min-height: 52px;
+      max-height: 160px;
+      resize: vertical;
+      border-radius: 8px;
+      border: 1px solid #34445a;
+      background: #0b111c;
+      color: #eef2f7;
+      padding: 12px;
+      font: inherit;
+      outline: none;
+      line-height: 1.4;
+    }
+    textarea:focus {
+      border-color: #20b8dc;
+      box-shadow: 0 0 0 2px #20b8dc22;
+    }
+    button {
+      min-height: 52px;
+      border-radius: 8px;
+      border: 1px solid #20b8dc;
+      background: #087c99;
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      padding: 0 16px;
+      cursor: pointer;
+    }
+    button:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+    .tools {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: #9fb0c4;
+      font-size: 12px;
+      flex-wrap: wrap;
+    }
+    .link {
+      color: #7dd3fc;
+      text-decoration: none;
+    }
+    @media (max-width: 640px) {
+      .app { border: 0; }
+      .composer-row { grid-template-columns: 1fr; }
+      button { min-height: 44px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>codex-LLM Chat</h1>
+        <div class="meta">
+          <span id="model" class="badge">modelo: ...</span>
+          <span id="auth" class="badge">auth: ...</span>
+          <span id="pool" class="badge">pool: ...</span>
+          <span id="status" class="badge">pronto</span>
+        </div>
+      </div>
+      <a class="link" href="/">tester SSE</a>
+    </header>
+
+    <main id="messages" class="messages"></main>
+
+    <form id="form" class="composer">
+      <div class="composer-row">
+        <textarea id="input" placeholder="Digite sua mensagem..."></textarea>
+        <button id="send" type="submit">Enviar</button>
+      </div>
+      <div class="tools">
+        <span id="threadLabel">thread: chat</span>
+        <span>Enter envia, Shift+Enter quebra linha</span>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const messagesEl = document.getElementById("messages");
+    const formEl = document.getElementById("form");
+    const inputEl = document.getElementById("input");
+    const sendBtn = document.getElementById("send");
+    const modelEl = document.getElementById("model");
+    const authEl = document.getElementById("auth");
+    const poolEl = document.getElementById("pool");
+    const statusEl = document.getElementById("status");
+    const threadLabelEl = document.getElementById("threadLabel");
+
+    const threadId = localStorage.getItem("codexLLMThreadId") || `chat-${Date.now()}`;
+    localStorage.setItem("codexLLMThreadId", threadId);
+    threadLabelEl.textContent = `thread: ${threadId}`;
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function scrollBottom() {
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function addMessage(role, text = "") {
+      const wrap = document.createElement("div");
+      wrap.className = `msg ${role}`;
+
+      const label = document.createElement("div");
+      label.className = "role";
+      label.textContent = role === "user" ? "Você" : "Assistente";
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.textContent = text;
+      bubble.rawMarkdown = text;
+
+      wrap.append(label, bubble);
+      messagesEl.appendChild(wrap);
+      scrollBottom();
+      return bubble;
+    }
+
+    function escapeHtml(text) {
+      return text
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function inlineMarkdown(text) {
+      return escapeHtml(text)
+        .replace(/`([^`]+)`/g, "<code>$1</code>")
+        .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+        .replace(/\*([^*]+)\*/g, "<em>$1</em>");
+    }
+
+    function flushParagraph(html, paragraph) {
+      if (!paragraph.length) return;
+      html.push(`<p>${inlineMarkdown(paragraph.join(" "))}</p>`);
+      paragraph.length = 0;
+    }
+
+    function flushList(html, list) {
+      if (!list.items.length) return;
+      const tag = list.type === "ol" ? "ol" : "ul";
+      html.push(`<${tag}>${list.items.map((item) => `<li>${inlineMarkdown(item)}</li>`).join("")}</${tag}>`);
+      list.items = [];
+      list.type = "";
+    }
+
+    function renderMarkdown(markdown) {
+      const lines = String(markdown || "").replace(/\r\n/g, "\n").split("\n");
+      const html = [];
+      const paragraph = [];
+      const list = { type: "", items: [] };
+      let inCode = false;
+      let codeLines = [];
+
+      for (const line of lines) {
+        const fence = line.match(/^```/);
+        if (fence) {
+          if (inCode) {
+            html.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+            codeLines = [];
+            inCode = false;
+          } else {
+            flushParagraph(html, paragraph);
+            flushList(html, list);
+            inCode = true;
+          }
+          continue;
+        }
+
+        if (inCode) {
+          codeLines.push(line);
+          continue;
+        }
+
+        if (!line.trim()) {
+          flushParagraph(html, paragraph);
+          flushList(html, list);
+          continue;
+        }
+
+        const heading = line.match(/^(#{1,3})\s+(.+)$/);
+        if (heading) {
+          flushParagraph(html, paragraph);
+          flushList(html, list);
+          const level = heading[1].length;
+          html.push(`<h${level}>${inlineMarkdown(heading[2].trim())}</h${level}>`);
+          continue;
+        }
+
+        const quote = line.match(/^>\s*(.+)$/);
+        if (quote) {
+          flushParagraph(html, paragraph);
+          flushList(html, list);
+          html.push(`<blockquote>${inlineMarkdown(quote[1].trim())}</blockquote>`);
+          continue;
+        }
+
+        const ordered = line.match(/^\s*\d+[.)]\s+(.+)$/);
+        if (ordered) {
+          flushParagraph(html, paragraph);
+          if (list.type && list.type !== "ol") flushList(html, list);
+          list.type = "ol";
+          list.items.push(ordered[1].trim());
+          continue;
+        }
+
+        const unordered = line.match(/^\s*[-*]\s+(.+)$/);
+        if (unordered) {
+          flushParagraph(html, paragraph);
+          if (list.type && list.type !== "ul") flushList(html, list);
+          list.type = "ul";
+          list.items.push(unordered[1].trim());
+          continue;
+        }
+
+        flushList(html, list);
+        paragraph.push(line.trim());
+      }
+
+      if (inCode) {
+        html.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+      }
+      flushParagraph(html, paragraph);
+      flushList(html, list);
+
+      return html.join("");
+    }
+
+    function setMarkdown(bubble, markdown) {
+      bubble.rawMarkdown = markdown;
+      bubble.classList.add("markdown");
+      bubble.innerHTML = renderMarkdown(markdown);
+    }
+
+    function parseSseChunk(buffer, onEvent) {
+      const parts = buffer.split(/\r?\n\r?\n/);
+      const rest = parts.pop() || "";
+      for (const raw of parts) {
+        const data = raw
+          .split(/\r?\n/)
+          .filter((line) => line.startsWith("data:"))
+          .map((line) => line.slice(5).trimStart())
+          .join("\n")
+          .trim();
+        if (data) onEvent(JSON.parse(data));
+      }
+      return rest;
+    }
+
+    async function loadHealth() {
+      const res = await fetch("/api/health");
+      const data = await res.json();
+      modelEl.textContent = `modelo: ${data.model}`;
+      authEl.textContent = data.auth.hasAccessToken
+        ? "auth: access_token"
+        : data.auth.hasApiKey
+          ? "auth: api key"
+          : "auth: ausente";
+      const pool = data.auth.pool || {};
+      poolEl.textContent = `pool: ${pool.available || 0}/${pool.accounts || 0}`;
+    }
+
+    async function sendMessage(text) {
+      addMessage("user", text);
+      const assistantBubble = addMessage("assistant", "");
+      assistantBubble.classList.add("markdown");
+      sendBtn.disabled = true;
+      setStatus("pensando");
+
+      try {
+        const res = await fetch("/api/chat/sse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ threadId, text })
+        });
+
+        if (!res.ok || !res.body) {
+          throw new Error(await res.text());
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          buffer = parseSseChunk(buffer, (event) => {
+            if (event.type === "status") {
+              setStatus(event.detail || event.state);
+            }
+            if (event.type === "text_delta") {
+              setMarkdown(assistantBubble, (assistantBubble.rawMarkdown || "") + event.text);
+              scrollBottom();
+            }
+            if (event.type === "completed") {
+              setStatus("pronto");
+              if (!(assistantBubble.rawMarkdown || "") && event.text) {
+                setMarkdown(assistantBubble, event.text);
+              }
+            }
+            if (event.type === "error") {
+              setStatus("erro");
+              setMarkdown(
+                assistantBubble,
+                `${assistantBubble.rawMarkdown || ""}\n\n[erro] ${event.message}`,
+              );
+            }
+          });
+        }
+      } catch (error) {
+        setStatus("erro");
+        assistantBubble.textContent = `[erro] ${error.message || error}`;
+      } finally {
+        sendBtn.disabled = false;
+        inputEl.focus();
+        scrollBottom();
+      }
+    }
+
+    formEl.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const text = inputEl.value.trim();
+      if (!text || sendBtn.disabled) return;
+      inputEl.value = "";
+      sendMessage(text);
+    });
+
+    inputEl.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        formEl.requestSubmit();
+      }
+    });
+
+    addMessage("assistant", "Pronto. Manda a pergunta.");
+    inputEl.focus();
+    loadHealth().catch(() => {
+      modelEl.textContent = "modelo: erro";
+      authEl.textContent = "auth: erro";
+      poolEl.textContent = "pool: erro";
+    });
+  </script>
+</body>
+</html>
