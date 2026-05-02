@@ -1,6 +1,6 @@
 # codex-LLM
 
-Uma implementação enxuta da camada LLM/Codex isolada do projeto `vtuber-ai-assistant`. Este projeto fornece um servidor Node.js com suporte a streaming SSE (Server-Sent Events) para integração com modelos de IA como ChatGPT e OpenAI.
+Uma implementação enxuta da camada LLM/Codex isolada do projeto `vtuber-ai-assistant`. Este projeto fornece um servidor Node.js com suporte a streaming SSE (Server-Sent Events) para integração [...]
 
 ## 📋 Visão Geral
 
@@ -430,11 +430,3 @@ Contribuições são bem-vindas! Sinta-se livre para abrir PRs e issues.
 - Histórico em memória (máx 12 msgs/thread)
 - Pool com fallback automático em falhas 4xx/5xx
 - Suporta múltiplas requisições simultâneas
-
-## 📞 Suporte
-
-Para dúvidas:
-1. Consulte a seção [Troubleshooting](#-troubleshooting)
-2. Teste com modo mock (`MOCK_LLM=1`)
-3. Verifique logs do console
-4. Abra uma issue no repositório
