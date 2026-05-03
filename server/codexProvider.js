@@ -85,7 +85,8 @@ export class CodexSessionProvider {
 
       const previousResponseId = this.previousResponseByThread.get(request.threadId);
       const useStoredResponses = endpoint.kind === "openai_api";
-      const history = this.historyByThread.get(request.threadId) || [];
+      const requestHistory = Array.isArray(request.history) ? request.history : undefined;
+      const history = requestHistory || this.historyByThread.get(request.threadId) || [];
       const input = useStoredResponses
         ? [
             {
@@ -108,17 +109,32 @@ export class CodexSessionProvider {
         store: useStoredResponses
       };
 
+      if (["low", "medium", "high"].includes(request.reasoningEffort)) {
+        payload.reasoning = { effort: request.reasoningEffort };
+      }
+
       if (useStoredResponses && previousResponseId) {
         payload.previous_response_id = previousResponseId;
       }
 
+      const headers = {
+        Authorization: `Bearer ${endpoint.token}`,
+        "Content-Type": "application/json",
+        Accept: "text/event-stream"
+      };
+
+      if (endpoint.kind === "chatgpt_session") {
+        headers.Origin = "https://chatgpt.com";
+        headers.Referer = "https://chatgpt.com/";
+        headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
+        if (auth.accountId) {
+          headers["chatgpt-account-id"] = auth.accountId;
+        }
+      }
+
       const response = await fetch(endpoint.url, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${endpoint.token}`,
-          "Content-Type": "application/json",
-          Accept: "text/event-stream"
-        },
+        headers,
         body: JSON.stringify(payload)
       });
 

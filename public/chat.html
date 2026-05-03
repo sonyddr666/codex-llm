@@ -13,15 +13,90 @@
       color: #eef2f7;
       font-family: Segoe UI, Arial, sans-serif;
     }
+    .layout {
+      height: 100vh;
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+    }
+    .sidebar {
+      border-right: 1px solid #243044;
+      background: #0b111a;
+      padding: 12px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 12px;
+      min-width: 0;
+    }
+    .new-chat {
+      width: 100%;
+      min-height: 42px;
+    }
+    .chat-list {
+      overflow: auto;
+      display: grid;
+      align-content: start;
+      gap: 8px;
+    }
+    .chat-item {
+      border: 1px solid #26354a;
+      border-radius: 8px;
+      background: #111824;
+      color: #dbe8f5;
+      text-align: left;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px;
+      align-items: center;
+      padding: 7px;
+    }
+    .chat-item.active {
+      border-color: #20b8dc;
+      background: #10293a;
+    }
+    .chat-title {
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .chat-date {
+      color: #91a3b7;
+      font-size: 12px;
+    }
+    .chat-open {
+      min-height: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      padding: 2px;
+      text-align: left;
+      display: grid;
+      gap: 4px;
+      font-weight: inherit;
+    }
+    .chat-delete {
+      min-height: 30px;
+      width: 30px;
+      border-radius: 7px;
+      border: 1px solid #3b4658;
+      background: #111824;
+      color: #9fb0c4;
+      padding: 0;
+      font-size: 16px;
+      line-height: 1;
+    }
+    .chat-delete:hover {
+      border-color: #f87171;
+      color: #ffe1e1;
+      background: #33151a;
+    }
     .app {
       height: 100vh;
       display: grid;
       grid-template-rows: auto 1fr auto;
-      max-width: 960px;
-      margin: 0 auto;
-      border-left: 1px solid #243044;
-      border-right: 1px solid #243044;
       background: #111824;
+      min-width: 0;
     }
     header {
       padding: 14px 18px;
@@ -73,6 +148,35 @@
       color: #9fb0c4;
       font-size: 12px;
       padding: 0 4px;
+    }
+    .message-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #8fa1b6;
+      font-size: 12px;
+      padding: 0 4px;
+    }
+    .msg.user .message-meta {
+      justify-content: flex-end;
+    }
+    .copy-btn {
+      min-height: 0;
+      border-radius: 999px;
+      border: 1px solid #34445a;
+      background: #0b111c;
+      color: #b8c7d8;
+      padding: 3px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .duration {
+      color: #7dd3fc;
+    }
+    .copy-btn:hover {
+      border-color: #20b8dc;
+      color: #e8f6ff;
     }
     .bubble {
       border: 1px solid #2e3e54;
@@ -149,6 +253,25 @@
       border-left: 3px solid #20b8dc;
       color: #c7d7ea;
     }
+    .loader {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #9fb0c4;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .loader-icon {
+      display: inline-block;
+      color: #7dd3fc;
+      font-size: 18px;
+      line-height: 1;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
     .user .bubble {
       background: #0b3142;
       border-color: #17637d;
@@ -165,7 +288,7 @@
     }
     .composer-row {
       display: grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns: 1fr auto auto;
       gap: 10px;
       align-items: end;
     }
@@ -202,6 +325,20 @@
       opacity: 0.55;
       cursor: wait;
     }
+    .mic-btn {
+      min-width: 58px;
+      border-color: #34445a;
+      background: #0d1420;
+      color: #dbe8f5;
+    }
+    .mic-btn.active {
+      border-color: #20b8dc;
+      background: #103044;
+      color: #d7f6ff;
+    }
+    .stt-status {
+      color: #7dd3fc;
+    }
     .tools {
       display: flex;
       justify-content: space-between;
@@ -210,70 +347,446 @@
       font-size: 12px;
       flex-wrap: wrap;
     }
-    .link {
-      color: #7dd3fc;
-      text-decoration: none;
+    .settings-wrap {
+      position: relative;
+    }
+    .settings-btn {
+      min-height: 38px;
+      border-radius: 7px;
+      border: 1px solid #34445a;
+      background: #0d1420;
+      color: #dbe8f5;
+      padding: 0 12px;
+      font-size: 13px;
+    }
+    .settings-panel {
+      position: absolute;
+      z-index: 20;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 640px;
+      max-width: calc(100vw - 24px);
+      max-height: min(76vh, 720px);
+      overflow: auto;
+      border: 1px solid #34445a;
+      border-radius: 8px;
+      background: #151b26;
+      box-shadow: 0 18px 48px #0008;
+      padding: 10px;
+      display: grid;
+      gap: 10px;
+    }
+    .settings-panel.hidden {
+      display: none;
+    }
+    .settings-title {
+      color: #9fb0c4;
+      font-size: 12px;
+      font-weight: 700;
+      margin: 2px 2px 0;
+    }
+    .settings-tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .settings-tab {
+      min-height: 32px;
+      border-radius: 7px;
+      border: 1px solid #34445a;
+      background: #0d1420;
+      color: #dbe8f5;
+      padding: 0 10px;
+      font-size: 13px;
+    }
+    .settings-tab.active {
+      border-color: #20b8dc;
+      background: #103044;
+    }
+    .settings-view {
+      display: grid;
+      gap: 10px;
+    }
+    .settings-view.hidden {
+      display: none;
+    }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: #eef2f7;
+      min-height: 34px;
+      padding: 0 8px;
+      text-align: left;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .settings-row:hover {
+      background: #202838;
+    }
+    .settings-row .check {
+      color: #d7edf8;
+    }
+    .settings-divider {
+      height: 1px;
+      background: #2a3649;
+      margin: 2px 0;
+    }
+    .context-box {
+      width: 100%;
+      min-height: 260px;
+      max-height: 52vh;
+      resize: vertical;
+      border-radius: 7px;
+      border: 1px solid #34445a;
+      background: #0b111c;
+      color: #eef2f7;
+      padding: 9px;
+      font: 13px/1.35 Segoe UI, Arial, sans-serif;
+    }
+    .summary-box {
+      min-height: 150px;
+    }
+    .settings-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .secondary-btn {
+      min-height: 36px;
+      border-radius: 7px;
+      border: 1px solid #5663d7;
+      background: #4f5ecf;
+      color: #fff;
+      padding: 0 12px;
+      font-size: 13px;
+    }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      background: #020611aa;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+    }
+    .modal-backdrop.hidden {
+      display: none;
+    }
+    .modal {
+      width: min(420px, 100%);
+      border: 1px solid #34445a;
+      border-radius: 8px;
+      background: #111824;
+      box-shadow: 0 24px 80px #000b;
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+    .modal-title {
+      margin: 0;
+      font-size: 16px;
+    }
+    .modal-text {
+      margin: 0;
+      color: #b8c7d8;
+      overflow-wrap: anywhere;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .modal-actions button {
+      min-height: 38px;
+      padding: 0 13px;
+    }
+    .danger-btn {
+      border-color: #f87171;
+      background: #9f2735;
+    }
+    .ghost-btn {
+      border-color: #34445a;
+      background: #0d1420;
     }
     @media (max-width: 640px) {
-      .app { border: 0; }
+      .layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+      }
+      .sidebar {
+        max-height: 180px;
+        border-right: 0;
+        border-bottom: 1px solid #243044;
+      }
+      .app { height: auto; min-height: 0; }
       .composer-row { grid-template-columns: 1fr; }
       button { min-height: 44px; }
     }
   </style>
 </head>
 <body>
-  <div class="app">
-    <header>
-      <div>
-        <h1>codex-LLM Chat</h1>
-        <div class="meta">
-          <span id="model" class="badge">modelo: ...</span>
-          <span id="auth" class="badge">auth: ...</span>
-          <span id="pool" class="badge">pool: ...</span>
-          <span id="status" class="badge">pronto</span>
+  <div class="layout">
+    <aside class="sidebar">
+      <button id="newChat" class="new-chat" type="button">Novo chat</button>
+      <div id="chatList" class="chat-list"></div>
+    </aside>
+
+    <div class="app">
+      <header>
+        <div>
+          <h1 id="chatTitle">codex-LLM Chat</h1>
+          <div class="meta">
+            <span id="model" class="badge">modelo: ...</span>
+            <span id="auth" class="badge">auth: ...</span>
+            <span id="pool" class="badge">pool: ...</span>
+            <span id="status" class="badge">pronto</span>
+          </div>
         </div>
-      </div>
-      <a class="link" href="/">tester SSE</a>
-    </header>
+        <div class="settings-wrap">
+          <button id="settingsButton" class="settings-btn" type="button">Configuracoes</button>
+          <div id="settingsPanel" class="settings-panel hidden">
+            <div class="settings-tabs">
+              <button class="settings-tab active" type="button" data-settings-tab="general">Geral</button>
+              <button class="settings-tab" type="button" data-settings-tab="prompt">Prompt</button>
+              <button class="settings-tab" type="button" data-settings-tab="vocabulary">Vocabulario</button>
+              <button class="settings-tab" type="button" data-settings-tab="memory">Memoria</button>
+            </div>
 
-    <main id="messages" class="messages"></main>
+            <div class="settings-view" data-settings-view="general">
+              <div class="settings-title">Inteligencia</div>
+            <button class="settings-row" type="button" data-intelligence="low">Baixa <span class="check"></span></button>
+            <button class="settings-row" type="button" data-intelligence="medium">Media <span class="check"></span></button>
+            <button class="settings-row" type="button" data-intelligence="high">Alta <span class="check"></span></button>
+            <button class="settings-row" type="button" data-intelligence="xhigh">Altissimo <span class="check"></span></button>
 
-    <form id="form" class="composer">
-      <div class="composer-row">
-        <textarea id="input" placeholder="Digite sua mensagem..."></textarea>
-        <button id="send" type="submit">Enviar</button>
+            <div class="settings-divider"></div>
+            <div class="settings-title">Modelo</div>
+            <button class="settings-row" type="button" data-model="gpt-5.5">GPT-5.5 <span class="check"></span></button>
+            <button class="settings-row" type="button" data-model="gpt-5.4">GPT-5.4 <span class="check"></span></button>
+            <button class="settings-row" type="button" data-model="gpt-5.4-mini">GPT-5.4-Mini <span class="check"></span></button>
+            <button class="settings-row" type="button" data-model="gpt-5.3-codex">GPT-5.3-Codex <span class="check"></span></button>
+            <button class="settings-row" type="button" data-model="gpt-5.2">GPT-5.2 <span class="check"></span></button>
+
+            <div class="settings-divider"></div>
+            <div class="settings-title">Velocidade</div>
+            <div class="settings-row">Normal <span class="check">&#10003;</span></div>
+            </div>
+
+            <div class="settings-view hidden" data-settings-view="prompt">
+              <div class="settings-title">System prompt</div>
+              <textarea id="systemPrompt" class="context-box" spellcheck="false"></textarea>
+              <div class="settings-actions">
+                <button id="saveSystemPrompt" class="secondary-btn" type="button">Salvar prompt</button>
+              </div>
+            </div>
+
+            <div class="settings-view hidden" data-settings-view="vocabulary">
+              <div class="settings-title">Vocabulario</div>
+              <textarea id="vocabulary" class="context-box" spellcheck="false"></textarea>
+              <div class="settings-actions">
+                <button id="saveVocabulary" class="secondary-btn" type="button">Salvar vocabulario</button>
+              </div>
+            </div>
+
+            <div class="settings-view hidden" data-settings-view="memory">
+              <div class="settings-title">Memoria resumida</div>
+              <textarea id="summary" class="context-box summary-box" spellcheck="false"></textarea>
+              <div class="settings-actions">
+                <button id="saveSummary" class="secondary-btn" type="button">Salvar memoria</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main id="messages" class="messages"></main>
+
+      <form id="form" class="composer">
+        <div class="composer-row">
+          <textarea id="input" placeholder="Digite sua mensagem..."></textarea>
+          <button id="mic" class="mic-btn" type="button">Mic</button>
+          <button id="send" type="submit">Enviar</button>
+        </div>
+        <div class="tools">
+          <span id="threadLabel">chat: nenhum</span>
+          <span id="sttStatus" class="stt-status"></span>
+          <span>Enter envia, Shift+Enter quebra linha</span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="deleteModal" class="modal-backdrop hidden">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="deleteTitle">
+      <h2 id="deleteTitle" class="modal-title">Apagar chat?</h2>
+      <p id="deleteText" class="modal-text"></p>
+      <div class="modal-actions">
+        <button id="cancelDelete" class="ghost-btn" type="button">Cancelar</button>
+        <button id="confirmDelete" class="danger-btn" type="button">Apagar</button>
       </div>
-      <div class="tools">
-        <span id="threadLabel">thread: chat</span>
-        <span>Enter envia, Shift+Enter quebra linha</span>
-      </div>
-    </form>
+    </div>
   </div>
 
   <script>
     const messagesEl = document.getElementById("messages");
+    const chatListEl = document.getElementById("chatList");
+    const newChatBtn = document.getElementById("newChat");
+    const chatTitleEl = document.getElementById("chatTitle");
     const formEl = document.getElementById("form");
     const inputEl = document.getElementById("input");
+    const micBtn = document.getElementById("mic");
     const sendBtn = document.getElementById("send");
     const modelEl = document.getElementById("model");
     const authEl = document.getElementById("auth");
     const poolEl = document.getElementById("pool");
     const statusEl = document.getElementById("status");
     const threadLabelEl = document.getElementById("threadLabel");
+    const sttStatusEl = document.getElementById("sttStatus");
+    const settingsButton = document.getElementById("settingsButton");
+    const settingsPanel = document.getElementById("settingsPanel");
+    const systemPromptEl = document.getElementById("systemPrompt");
+    const vocabularyEl = document.getElementById("vocabulary");
+    const summaryEl = document.getElementById("summary");
+    const saveSystemPromptBtn = document.getElementById("saveSystemPrompt");
+    const saveVocabularyBtn = document.getElementById("saveVocabulary");
+    const saveSummaryBtn = document.getElementById("saveSummary");
+    const deleteModalEl = document.getElementById("deleteModal");
+    const deleteTextEl = document.getElementById("deleteText");
+    const cancelDeleteBtn = document.getElementById("cancelDelete");
+    const confirmDeleteBtn = document.getElementById("confirmDelete");
 
-    const threadId = localStorage.getItem("codexLLMThreadId") || `chat-${Date.now()}`;
-    localStorage.setItem("codexLLMThreadId", threadId);
-    threadLabelEl.textContent = `thread: ${threadId}`;
+    let currentChatId = "";
+    let currentChat = null;
+    let pendingDeleteChat = null;
+    let recognition = null;
+    let sttListening = false;
+    let sttBaseText = "";
+    let sttFinalText = "";
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const chatSettings = {
+      model: "gpt-5.4-mini",
+      intelligence: "low",
+      systemPrompt: "Voce e um assistente local, direto, natural e util. Responda em portugues brasileiro.",
+      vocabulary: "",
+      summary: ""
+    };
+
+    const intelligenceConfig = {
+      low: {
+        effort: "",
+        instruction: "Use respostas curtas, diretas e com pouca elaboracao."
+      },
+      medium: {
+        effort: "",
+        instruction: "Use um nivel equilibrado de detalhe e raciocinio."
+      },
+      high: {
+        effort: "high",
+        instruction: "Use respostas completas, bem estruturadas e cuidadosas."
+      },
+      xhigh: {
+        effort: "high",
+        instruction: "Use o maximo de cuidado, profundidade e organizacao possivel sem enrolar."
+      }
+    };
 
     function setStatus(text) {
       statusEl.textContent = text;
+    }
+
+    function setSttStatus(text) {
+      sttStatusEl.textContent = text || "";
+    }
+
+    function setMicActive(active) {
+      micBtn.classList.toggle("active", active);
+      micBtn.textContent = active ? "Parar" : "Mic";
+    }
+
+    function syncField(field, value) {
+      if (document.activeElement !== field) {
+        field.value = value || "";
+      }
+    }
+
+    function updateSettingsUi() {
+      syncField(systemPromptEl, chatSettings.systemPrompt);
+      syncField(vocabularyEl, chatSettings.vocabulary);
+      syncField(summaryEl, chatSettings.summary);
+      modelEl.textContent = `modelo: ${chatSettings.model}`;
+
+      for (const button of settingsPanel.querySelectorAll("[data-intelligence]")) {
+        const selected = button.dataset.intelligence === chatSettings.intelligence;
+        button.querySelector(".check").textContent = selected ? "\u2713" : "";
+      }
+
+      for (const button of settingsPanel.querySelectorAll("[data-model]")) {
+        const selected = button.dataset.model === chatSettings.model;
+        button.querySelector(".check").textContent = selected ? "\u2713" : "";
+      }
+    }
+
+    function showSettingsView(name) {
+      for (const tab of settingsPanel.querySelectorAll("[data-settings-tab]")) {
+        tab.classList.toggle("active", tab.dataset.settingsTab === name);
+      }
+      for (const view of settingsPanel.querySelectorAll("[data-settings-view]")) {
+        view.classList.toggle("hidden", view.dataset.settingsView !== name);
+      }
+    }
+
+    function buildInstructions() {
+      const config = intelligenceConfig[chatSettings.intelligence] || intelligenceConfig.medium;
+      return `Nivel de inteligencia: ${chatSettings.intelligence}. ${config.instruction}`;
     }
 
     function scrollBottom() {
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
-    function addMessage(role, text = "") {
+    function formatFullDate(value) {
+      const date = value ? new Date(value) : new Date();
+      if (Number.isNaN(date.getTime())) return "";
+      return date.toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      });
+    }
+
+    function formatDuration(ms) {
+      if (!Number.isFinite(Number(ms))) return "";
+      const value = Math.max(0, Math.round(Number(ms)));
+      return `${value} ms`;
+    }
+
+    async function copyText(text, button) {
+      try {
+        await navigator.clipboard.writeText(text || "");
+        const old = button.textContent;
+        button.textContent = "Copiado";
+        setTimeout(() => { button.textContent = old; }, 1200);
+      } catch (_) {
+        const area = document.createElement("textarea");
+        area.value = text || "";
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand("copy");
+        area.remove();
+      }
+    }
+
+    function addMessage(role, text = "", createdAt, durationMs) {
       const wrap = document.createElement("div");
       wrap.className = `msg ${role}`;
 
@@ -286,10 +799,45 @@
       bubble.textContent = text;
       bubble.rawMarkdown = text;
 
-      wrap.append(label, bubble);
+      const meta = document.createElement("div");
+      meta.className = "message-meta";
+
+      const time = document.createElement("span");
+      time.className = "time";
+      time.textContent = formatFullDate(createdAt);
+      meta.appendChild(time);
+
+      if (role === "assistant") {
+        const duration = document.createElement("span");
+        duration.className = "duration";
+        duration.textContent = formatDuration(durationMs);
+        if (!duration.textContent) {
+          duration.hidden = true;
+        }
+        meta.appendChild(duration);
+        bubble.durationEl = duration;
+
+        const copy = document.createElement("button");
+        copy.className = "copy-btn";
+        copy.type = "button";
+        copy.textContent = "Copiar";
+        copy.addEventListener("click", () => copyText(bubble.rawMarkdown || bubble.textContent, copy));
+        meta.appendChild(copy);
+      }
+
+      wrap.append(label, bubble, meta);
       messagesEl.appendChild(wrap);
       scrollBottom();
       return bubble;
+    }
+
+    function renderSavedMessage(message) {
+      const bubble = addMessage(message.role, "", message.createdAt, message.durationMs);
+      if (message.role === "assistant") {
+        setMarkdown(bubble, message.content || "");
+      } else {
+        bubble.textContent = message.content || "";
+      }
     }
 
     function escapeHtml(text) {
@@ -409,6 +957,29 @@
       bubble.innerHTML = renderMarkdown(markdown);
     }
 
+    function startBubbleLoader(bubble) {
+      const startedAt = performance.now();
+      bubble.classList.remove("markdown");
+      bubble.innerHTML = '<span class="loader"><span class="loader-icon">∞</span><span class="loader-text">0 ms</span></span>';
+      const textEl = bubble.querySelector(".loader-text");
+      const setDuration = () => {
+        const elapsed = Math.round(performance.now() - startedAt);
+        textEl.textContent = `${elapsed} ms`;
+        if (bubble.durationEl) {
+          bubble.durationEl.hidden = false;
+          bubble.durationEl.textContent = formatDuration(elapsed);
+        }
+      };
+      const timer = setInterval(() => {
+        setDuration();
+      }, 50);
+      setDuration();
+      return () => {
+        setDuration();
+        clearInterval(timer);
+      };
+    }
+
     function parseSseChunk(buffer, onEvent) {
       const parts = buffer.split(/\r?\n\r?\n/);
       const rest = parts.pop() || "";
@@ -427,7 +998,8 @@
     async function loadHealth() {
       const res = await fetch("/api/health");
       const data = await res.json();
-      modelEl.textContent = `modelo: ${data.model}`;
+      chatSettings.model = data.model || chatSettings.model;
+      updateSettingsUi();
       authEl.textContent = data.auth.hasAccessToken
         ? "auth: access_token"
         : data.auth.hasApiKey
@@ -437,18 +1009,215 @@
       poolEl.textContent = `pool: ${pool.available || 0}/${pool.accounts || 0}`;
     }
 
+    async function apiJson(url, options) {
+      const res = await fetch(url, {
+        headers: { "Content-Type": "application/json" },
+        ...options
+      });
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+      return res.json();
+    }
+
+    function applyContext(context) {
+      chatSettings.systemPrompt = context?.systemPrompt || chatSettings.systemPrompt;
+      chatSettings.vocabulary = context?.vocabulary || "";
+      chatSettings.summary = context?.summary || "";
+      updateSettingsUi();
+    }
+
+    async function loadContext() {
+      const data = await apiJson("/api/context");
+      applyContext(data.context || {});
+    }
+
+    async function saveContextPatch(patch, label) {
+      const data = await apiJson("/api/context", {
+        method: "PUT",
+        body: JSON.stringify(patch)
+      });
+      applyContext(data.context || {});
+      setStatus(label);
+      setTimeout(() => setStatus("pronto"), 900);
+    }
+
+    function formatDate(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      return date.toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    function renderChatList(chats) {
+      chatListEl.innerHTML = "";
+      if (!chats.length) {
+        const empty = document.createElement("div");
+        empty.className = "chat-date";
+        empty.textContent = "Nenhum chat salvo ainda.";
+        chatListEl.appendChild(empty);
+        return;
+      }
+
+      for (const chat of chats) {
+        const item = document.createElement("div");
+        item.className = `chat-item${chat.id === currentChatId ? " active" : ""}`;
+
+        const open = document.createElement("button");
+        open.type = "button";
+        open.className = "chat-open";
+
+        const title = document.createElement("div");
+        title.className = "chat-title";
+        title.textContent = chat.title || "Novo chat";
+
+        const date = document.createElement("div");
+        date.className = "chat-date";
+        date.textContent = `${formatDate(chat.updatedAt)} · ${chat.messageCount || 0} msgs`;
+
+        open.append(title, date);
+        open.addEventListener("click", () => openChat(chat.id));
+
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "chat-delete";
+        del.title = "Apagar chat";
+        del.textContent = "×";
+        del.addEventListener("click", () => askDeleteChat(chat));
+
+        item.append(open, del);
+        chatListEl.appendChild(item);
+      }
+    }
+
+    async function loadChatList() {
+      const data = await apiJson("/api/chats");
+      renderChatList(data.chats || []);
+      return data.chats || [];
+    }
+
+    function renderChat(chat) {
+      currentChat = chat;
+      currentChatId = chat.id;
+      chatTitleEl.textContent = chat.title || "Novo chat";
+      threadLabelEl.textContent = `arquivo: chats/${chat.id}.json`;
+      messagesEl.innerHTML = "";
+
+      if (!chat.messages?.length) {
+        addMessage("assistant", "Pronto. Manda a pergunta.");
+      } else {
+        for (const message of chat.messages) {
+          renderSavedMessage(message);
+        }
+      }
+      scrollBottom();
+    }
+
+    async function openChat(id) {
+      const data = await apiJson(`/api/chats/${encodeURIComponent(id)}`);
+      renderChat(data.chat);
+      await loadChatList();
+    }
+
+    async function createNewChat() {
+      const data = await apiJson("/api/chats", {
+        method: "POST",
+        body: JSON.stringify({ title: "Novo chat" })
+      });
+      renderChat(data.chat);
+      await loadChatList();
+      inputEl.focus();
+    }
+
+    function askDeleteChat(chat) {
+      pendingDeleteChat = chat;
+      const title = chat.title || "Novo chat";
+      deleteTextEl.textContent = title;
+      deleteModalEl.classList.remove("hidden");
+      confirmDeleteBtn.focus();
+    }
+
+    function closeDeleteModal() {
+      pendingDeleteChat = null;
+      deleteModalEl.classList.add("hidden");
+    }
+
+    async function deletePendingChat() {
+      const chat = pendingDeleteChat;
+      if (!chat) {
+        return;
+      }
+      confirmDeleteBtn.disabled = true;
+
+      try {
+        await apiJson(`/api/chats/${encodeURIComponent(chat.id)}`, {
+          method: "DELETE"
+        });
+
+        closeDeleteModal();
+
+        if (chat.id === currentChatId) {
+          currentChatId = "";
+          currentChat = null;
+          const chats = await loadChatList();
+          if (chats.length) {
+            await openChat(chats[0].id);
+          } else {
+            await createNewChat();
+          }
+          return;
+        }
+
+        await loadChatList();
+      } catch (error) {
+        setStatus("erro");
+        addMessage("assistant", `[erro] ${error.message || error}`);
+      } finally {
+        confirmDeleteBtn.disabled = false;
+      }
+    }
+
+    async function bootChats() {
+      const chats = await loadChatList();
+      if (chats.length) {
+        await openChat(chats[0].id);
+      } else {
+        await createNewChat();
+      }
+    }
+
     async function sendMessage(text) {
       addMessage("user", text);
       const assistantBubble = addMessage("assistant", "");
-      assistantBubble.classList.add("markdown");
+      const stopLoader = startBubbleLoader(assistantBubble);
       sendBtn.disabled = true;
       setStatus("pensando");
 
       try {
+        if (!currentChatId) {
+          await createNewChat();
+        }
+
+        const payload = {
+          chatId: currentChatId,
+          text,
+          model: chatSettings.model,
+          instructions: buildInstructions()
+        };
+        const effort = (intelligenceConfig[chatSettings.intelligence] || intelligenceConfig.medium).effort;
+        if (effort) {
+          payload.reasoningEffort = effort;
+        }
+
         const res = await fetch("/api/chat/sse", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ threadId, text })
+          body: JSON.stringify(payload)
         });
 
         if (!res.ok || !res.body) {
@@ -465,6 +1234,13 @@
 
           buffer += decoder.decode(value, { stream: true });
           buffer = parseSseChunk(buffer, (event) => {
+            if (event.type === "chat" && event.chat) {
+              currentChat = event.chat;
+              currentChatId = event.chat.id;
+              chatTitleEl.textContent = event.chat.title || "Novo chat";
+              threadLabelEl.textContent = `arquivo: chats/${event.chat.id}.json`;
+              loadChatList().catch(() => {});
+            }
             if (event.type === "status") {
               setStatus(event.detail || event.state);
             }
@@ -473,12 +1249,14 @@
               scrollBottom();
             }
             if (event.type === "completed") {
+              stopLoader();
               setStatus("pronto");
               if (!(assistantBubble.rawMarkdown || "") && event.text) {
                 setMarkdown(assistantBubble, event.text);
               }
             }
             if (event.type === "error") {
+              stopLoader();
               setStatus("erro");
               setMarkdown(
                 assistantBubble,
@@ -488,22 +1266,197 @@
           });
         }
       } catch (error) {
+        stopLoader();
         setStatus("erro");
         assistantBubble.textContent = `[erro] ${error.message || error}`;
       } finally {
+        stopLoader();
         sendBtn.disabled = false;
         inputEl.focus();
         scrollBottom();
       }
     }
 
+    function composeSttText(interim = "") {
+      inputEl.value = [sttBaseText, sttFinalText, interim]
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .join(" ")
+        .replace(/\s+/g, " ");
+    }
+
+    function buildRecognition() {
+      if (!SpeechRecognition) {
+        return null;
+      }
+      const rec = new SpeechRecognition();
+      rec.lang = "pt-BR";
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.maxAlternatives = 1;
+
+      rec.onstart = () => {
+        setMicActive(true);
+        setSttStatus("ouvindo");
+      };
+
+      rec.onresult = (event) => {
+        let interim = "";
+        for (let i = event.resultIndex; i < event.results.length; i += 1) {
+          const phrase = event.results[i][0].transcript.trim();
+          if (!phrase) continue;
+          if (event.results[i].isFinal) {
+            sttFinalText = `${sttFinalText} ${phrase}`.trim();
+          } else {
+            interim = `${interim} ${phrase}`.trim();
+          }
+        }
+        composeSttText(interim);
+      };
+
+      rec.onerror = (event) => {
+        if (event.error === "no-speech") {
+          setSttStatus("silencio");
+          return;
+        }
+        if (event.error === "not-allowed") {
+          sttListening = false;
+          setMicActive(false);
+          setSttStatus("mic bloqueado");
+          return;
+        }
+        setSttStatus(`erro: ${event.error}`);
+      };
+
+      rec.onend = () => {
+        if (sttListening) {
+          setSttStatus("reiniciando");
+          setTimeout(() => {
+            if (sttListening) {
+              try { rec.start(); } catch (_) {}
+            }
+          }, 180);
+          return;
+        }
+        setMicActive(false);
+        setSttStatus("");
+      };
+
+      return rec;
+    }
+
+    function startStt() {
+      if (!SpeechRecognition) {
+        setSttStatus("STT indisponivel neste navegador");
+        return;
+      }
+      if (!recognition) {
+        recognition = buildRecognition();
+      }
+      sttBaseText = inputEl.value.trim();
+      sttFinalText = "";
+      sttListening = true;
+      setSttStatus("iniciando");
+      try {
+        recognition.start();
+      } catch (_) {}
+    }
+
+    function stopStt() {
+      sttListening = false;
+      if (recognition) {
+        try { recognition.stop(); } catch (_) {}
+      }
+      setMicActive(false);
+      setSttStatus("");
+      inputEl.focus();
+    }
+
+    function toggleStt() {
+      if (sttListening) {
+        stopStt();
+      } else {
+        startStt();
+      }
+    }
+
+    micBtn.addEventListener("click", toggleStt);
+
     formEl.addEventListener("submit", (event) => {
       event.preventDefault();
       const text = inputEl.value.trim();
       if (!text || sendBtn.disabled) return;
+      if (sttListening) stopStt();
       inputEl.value = "";
       sendMessage(text);
     });
+
+    settingsButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      settingsPanel.classList.toggle("hidden");
+      updateSettingsUi();
+    });
+
+    settingsPanel.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+
+    document.addEventListener("click", () => {
+      settingsPanel.classList.add("hidden");
+    });
+
+    systemPromptEl.addEventListener("input", () => {
+      chatSettings.systemPrompt = systemPromptEl.value;
+    });
+
+    vocabularyEl.addEventListener("input", () => {
+      chatSettings.vocabulary = vocabularyEl.value;
+    });
+
+    summaryEl.addEventListener("input", () => {
+      chatSettings.summary = summaryEl.value;
+    });
+
+    saveSystemPromptBtn.addEventListener("click", () => {
+      saveContextPatch({ systemPrompt: systemPromptEl.value }, "prompt salvo").catch((error) => {
+        setStatus("erro");
+        addMessage("assistant", `[erro] ${error.message || error}`);
+      });
+    });
+
+    saveVocabularyBtn.addEventListener("click", () => {
+      saveContextPatch({ vocabulary: vocabularyEl.value }, "vocabulario salvo").catch((error) => {
+        setStatus("erro");
+        addMessage("assistant", `[erro] ${error.message || error}`);
+      });
+    });
+
+    saveSummaryBtn.addEventListener("click", () => {
+      saveContextPatch({ summary: summaryEl.value }, "memoria salva").catch((error) => {
+        setStatus("erro");
+        addMessage("assistant", `[erro] ${error.message || error}`);
+      });
+    });
+
+    for (const tab of settingsPanel.querySelectorAll("[data-settings-tab]")) {
+      tab.addEventListener("click", () => {
+        showSettingsView(tab.dataset.settingsTab);
+      });
+    }
+
+    for (const button of settingsPanel.querySelectorAll("[data-intelligence]")) {
+      button.addEventListener("click", () => {
+        chatSettings.intelligence = button.dataset.intelligence;
+        updateSettingsUi();
+      });
+    }
+
+    for (const button of settingsPanel.querySelectorAll("[data-model]")) {
+      button.addEventListener("click", () => {
+        chatSettings.model = button.dataset.model;
+        updateSettingsUi();
+      });
+    }
 
     inputEl.addEventListener("keydown", (event) => {
       if (event.key === "Enter" && !event.shiftKey) {
@@ -512,12 +1465,40 @@
       }
     });
 
-    addMessage("assistant", "Pronto. Manda a pergunta.");
+    newChatBtn.addEventListener("click", () => {
+      createNewChat().catch((error) => {
+        setStatus("erro");
+        addMessage("assistant", `[erro] ${error.message || error}`);
+      });
+    });
+
+    cancelDeleteBtn.addEventListener("click", closeDeleteModal);
+    confirmDeleteBtn.addEventListener("click", deletePendingChat);
+    deleteModalEl.addEventListener("click", (event) => {
+      if (event.target === deleteModalEl) {
+        closeDeleteModal();
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !deleteModalEl.classList.contains("hidden")) {
+        closeDeleteModal();
+      }
+    });
+
     inputEl.focus();
     loadHealth().catch(() => {
       modelEl.textContent = "modelo: erro";
       authEl.textContent = "auth: erro";
       poolEl.textContent = "pool: erro";
+    });
+    loadContext().catch((error) => {
+      setStatus("erro contexto");
+      addMessage("assistant", `[erro] ${error.message || error}`);
+    });
+    bootChats().catch((error) => {
+      setStatus("erro");
+      messagesEl.innerHTML = "";
+      addMessage("assistant", `[erro] ${error.message || error}`);
     });
   </script>
 </body>
