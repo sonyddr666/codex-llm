@@ -15,6 +15,12 @@ import {
 import { CodexSessionProvider } from "./codexProvider.js";
 import { appConfig } from "./config.js";
 import { buildInstructions, ensureContextFiles, readContext, saveContextPatch } from "./contextStore.js";
+import {
+  getExternalSttStatus,
+  readExternalSttText,
+  startExternalStt,
+  stopExternalStt
+} from "./externalStt.js";
 import { setupSse, writeSse } from "./outboundSse.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -173,6 +179,26 @@ async function main() {
 
   app.get("/api/context", (_req, res) => {
     res.json({ context: readContext() });
+  });
+
+  app.get("/api/stt/external/status", (_req, res) => {
+    res.json(getExternalSttStatus());
+  });
+
+  app.post("/api/stt/external/start", (_req, res) => {
+    try {
+      res.json(startExternalStt());
+    } catch (error) {
+      res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  app.post("/api/stt/external/stop", (_req, res) => {
+    res.json(stopExternalStt());
+  });
+
+  app.get("/api/stt/external/text", (req, res) => {
+    res.json(readExternalSttText(req.query.cursor));
   });
 
   app.put("/api/context", (req, res) => {

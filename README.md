@@ -1,75 +1,129 @@
 # codex-LLM
 
-Copia enxuta da camada LLM/Codex do projeto `vtuber-ai-assistant`.
+Chat local minimalista para conversar com modelos Codex/ChatGPT via streaming SSE.
 
-Esta pasta nao tem STT, TTS, avatar ou frontend React. Ela existe para entender e testar somente:
+Esta pasta nasceu como uma copia LLM-only: sem avatar, sem TTS e sem frontend pesado. Agora ela tem um chat simples, persistencia em arquivos, configuracoes editaveis e entrada por microfone.
 
-- selecao do modelo `gpt-5.4-mini`
-- carregamento de auth local
-- pool de contas
-- chamada ao endpoint `/responses`
-- streaming upstream SSE
-- streaming downstream SSE para cliente local
-- pergunta/resposta com historico por `threadId`
-- chats persistidos em arquivos `chats/*.json`
+## O Que Tem Aqui
+
+- Chat web simples em `public/chat.html`
+- Streaming SSE ao vivo para a resposta aparecer enquanto chega
+- Pool local de contas em `auth-pool/*.json`
+- Fallback para `OPENAI_API_KEY`
+- Historico salvo em arquivos `chats/*.json`
+- Nome automatico do chat a partir da primeira conversa
+- System prompt editavel pela interface
+- Vocabulario local editavel pela interface
+- Memoria resumida editavel pela interface
+- Markdown basico nas respostas
+- Botao copiar nas mensagens do assistente
+- Data/hora e tempo de resposta nas mensagens
+- Modal interno para apagar chat, sem `alert()` do navegador
+- Botao `Mic` para escrever por voz na barra de texto
+- Fallback STT Python para quando o Web Speech do Chrome falhar
 
 ## Como Rodar
 
+Instale dependencias:
+
 ```bash
 npm install
+```
+
+Rode o servidor:
+
+```bash
 npm start
 ```
 
 Abra:
 
 ```text
-http://127.0.0.1:8788
+http://127.0.0.1:8788/chat.html
 ```
 
-Modo sem credencial, para testar o SSE:
+No Windows tambem pode usar:
 
-```bash
-set MOCK_LLM=1
-npm start
+```bat
+run_codex_llm.bat
 ```
 
-Ou no PowerShell:
+## Modo Com STT Python Sidecar
 
-```powershell
-$env:MOCK_LLM = "1"
-npm start
+O botao `Mic` tenta usar primeiro o STT nativo do navegador:
+
+```text
+window.SpeechRecognition || window.webkitSpeechRecognition
 ```
 
-## Modelo
+Se o Chrome/Edge bloquear, falhar, ou se o navegador nao tiver Web Speech, o chat cai para o modo STT local por Python.
 
-O modelo padrao vem de `server/config.js`:
+Para o modo Python funcionar de forma estavel, rode:
 
-```js
-model: process.env.CODEX_MODEL || readModelFromConfig() || "gpt-5.4-mini"
+```bat
+run_codex_llm_with_stt.bat
 ```
 
-Ordem:
+Esse bat abre:
 
-1. `CODEX_MODEL`
-2. `config.toml` com `model = "..."` na raiz
-3. fallback `gpt-5.4-mini`
+1. O servidor Node do chat.
+2. O sidecar Python `stt-config-ok.py`, que captura o microfone local.
 
-Exemplo:
+Tambem da para rodar o sidecar separado:
 
-```powershell
-$env:CODEX_MODEL = "gpt-5.4-mini"
-npm start
+```bat
+run_stt_sidecar.bat
 ```
+
+O sidecar usa:
+
+```text
+C:\Users\Larri\Documents\PRGRAMACAO\stt\openya\stt-config-ok.py
+C:\Users\Larri\Documents\PRGRAMACAO\stt\openya\token.txt
+```
+
+Ele escreve a transcricao acumulada em:
+
+```text
+runtime/external-stt.txt
+```
+
+O chat le esse arquivo e joga o texto na barra de mensagem.
+
+Importante: o token fica na pasta original do STT. O projeto nao copia nem imprime token.
+
+## Como O Mic Funciona
+
+Fluxo normal pelo navegador:
+
+```text
+Chrome/Edge Web Speech API
+        -> textarea do chat
+        -> Enviar
+        -> LLM SSE
+```
+
+Fluxo fallback pelo Python:
+
+```text
+Python sounddevice
+        -> turnos por silencio
+        -> ChatGPT transcribe
+        -> runtime/external-stt.txt
+        -> textarea do chat
+        -> Enviar
+        -> LLM SSE
+```
+
+O Python nao depende da permissao de microfone do navegador. Ele usa o microfone pelo sistema operacional.
 
 ## Auth
 
-O servidor nao le automaticamente `C:\Users\...\ .codex\auth.json`.
-
-Ele so aceita auth dentro da propria pasta `codex-LLM`, por seguranca:
+O servidor procura auth dentro da pasta do projeto:
 
 ```text
-codex-LLM/auth.json
-codex-LLM/auth-pool/*.json
+auth.json
+auth-pool/*.json
 ```
 
 Tambem aceita:
@@ -78,11 +132,11 @@ Tambem aceita:
 CODEX_AUTH_PATH=C:\...\codex-LLM\auth.json
 ```
 
-mas o caminho ainda precisa estar dentro da pasta `codex-LLM`.
+Por seguranca, o caminho precisa continuar dentro da pasta do projeto.
 
-### Auth unico com access_token
+### Auth Unico
 
-Copie `auth.example.json` para `auth.json` e coloque seu token:
+Exemplo `auth.json`:
 
 ```json
 {
@@ -96,29 +150,19 @@ Copie `auth.example.json` para `auth.json` e coloque seu token:
 }
 ```
 
-Com `access_token`, ele chama:
+Com `access_token`, o servidor chama:
 
 ```text
 https://chatgpt.com/backend-api/codex/responses
 ```
 
-### Auth unico com OpenAI API key
-
-Tambem funciona:
-
-```json
-{
-  "OPENAI_API_KEY": "sk-..."
-}
-```
-
-Com `OPENAI_API_KEY`, ele chama:
+Com `OPENAI_API_KEY`, chama:
 
 ```text
 https://api.openai.com/v1/responses
 ```
 
-## Pool
+## Pool De Contas
 
 O pool fica em:
 
@@ -126,7 +170,7 @@ O pool fica em:
 auth-pool/*.json
 ```
 
-Formato:
+Formato esperado:
 
 ```json
 {
@@ -135,159 +179,283 @@ Formato:
       {
         "label": "conta-1",
         "auth_type": "oauth",
-        "access_token": "token-1"
-      },
-      {
-        "label": "conta-2",
-        "auth_type": "oauth",
-        "access_token": "token-2"
+        "access_token": "token-1",
+        "account_id": "opcional"
       }
     ]
   }
 }
 ```
 
-O provider seleciona a primeira conta com `access_token` ou `OPENAI_API_KEY`.
-Se a resposta vier `401`, `403` ou `429`, ele marca essa conta como pulada naquela request e tenta a proxima.
+O loader:
+
+- le todos os JSONs do pool
+- aceita arquivo unico ou `credential_pool.openai-codex`
+- ordena contas por `exp` do JWT
+- ignora tokens expirados
+- usa cache por tamanho/mtime do arquivo
+
+O provider:
+
+- escolhe uma conta disponivel
+- chama `/responses`
+- se receber `401`, `403` ou `429`, pula aquela conta nesta request
+- tenta a proxima conta do pool
+
+## Modelo E Inteligencia
+
+Modelo padrao:
+
+```text
+gpt-5.4-mini
+```
+
+Ordem de configuracao:
+
+1. `CODEX_MODEL`
+2. `config.toml`
+3. fallback `gpt-5.4-mini`
+
+Exemplo:
+
+```powershell
+$env:CODEX_MODEL = "gpt-5.4-mini"
+npm start
+```
+
+Na interface existem niveis:
+
+```text
+Baixa
+Media
+Alta
+Altissimo
+```
+
+`Baixa` e `Media` nao enviam `reasoning`.
+
+`Alta` e `Altissimo` enviam:
+
+```json
+{
+  "reasoning": {
+    "effort": "high"
+  }
+}
+```
+
+Neste provider, `Altissimo` e um rotulo de UI mapeado para `high`, porque o endpoint usado aqui aceita `low`, `medium` e `high`.
+
+## Configuracoes Do Chat
+
+A aba `Configuracoes` tem:
+
+- `Geral`: modelo e inteligencia
+- `Prompt`: system prompt editavel
+- `Vocabulario`: termos locais relevantes
+- `Memoria`: resumo persistente
+
+Arquivos:
+
+```text
+memory/system_prompt.md
+memory/vocabulary.txt
+memory/persona.json
+memory/summary.json
+```
+
+O backend monta as instrucoes finais em `server/contextStore.js`.
+
+Para evitar prompt gigante em toda chamada:
+
+- system prompt e limitado por `MAX_SYSTEM_PROMPT_CHARS`
+- vocabulario e filtrado por termos relevantes da pergunta
+
+## Chats Salvos
+
+Os chats ficam em:
+
+```text
+chats/*.json
+```
+
+Exemplo:
+
+```text
+chats/20260502-225657-oi.json
+```
+
+Cada arquivo guarda:
+
+- `id`
+- `title`
+- `createdAt`
+- `updatedAt`
+- mensagens
+- tempo de resposta do assistente quando disponivel
+
+Nao usa `localStorage`.
 
 ## Endpoints
 
-### Chats em arquivo
-
-```http
-GET /api/chats
-POST /api/chats
-GET /api/chats/:id
-```
-
-Cada conversa fica salva em:
-
-```text
-chats/<data>-<assunto>.json
-```
-
-O chat web usa esses arquivos, nao `localStorage`. Na primeira rodada, depois da resposta do assistente, o servidor renomeia o titulo do chat usando um resumo curto do primeiro assunto.
-
-### Health
+Health:
 
 ```http
 GET /api/health
 ```
 
-Retorna modelo, endpoint escolhido e status redigido de auth/pool.
-Nao retorna tokens.
+Contas:
 
-### SSE ao vivo
+```http
+GET /api/auth/accounts
+```
+
+Contexto:
+
+```http
+GET /api/context
+PUT /api/context
+```
+
+Chats:
+
+```http
+GET /api/chats
+POST /api/chats
+GET /api/chats/:id
+DELETE /api/chats/:id
+```
+
+Chat SSE:
 
 ```http
 POST /api/chat/sse
 Content-Type: application/json
 
 {
-  "threadId": "demo",
-  "text": "Explique streaming em uma frase."
+  "chatId": "opcional",
+  "text": "Oi",
+  "model": "gpt-5.4-mini",
+  "instructions": "opcional",
+  "reasoningEffort": "high"
 }
 ```
 
-Resposta:
-
-```text
-Content-Type: text/event-stream
-
-event: status
-data: {"type":"status","state":"thinking","detail":"codex"}
-
-event: text_delta
-data: {"type":"text_delta","text":"Claro"}
-
-event: completed
-data: {"type":"completed","responseId":"...","text":"Claro..."}
-```
-
-Tambem existe `GET /api/chat/sse?threadId=demo&text=...` para teste rapido, mas POST e melhor.
-
-### JSON sem streaming
+Chat JSON sem streaming:
 
 ```http
 POST /api/chat/json
 ```
 
-Retorna:
+STT Python:
 
-```json
-{
-  "ok": true,
-  "responseId": "...",
-  "text": "resposta completa"
-}
+```http
+GET /api/stt/external/status
+POST /api/stt/external/start
+POST /api/stt/external/stop
+GET /api/stt/external/text?cursor=0
 ```
 
-## Como O Streaming Funciona
-
-1. Cliente local chama `/api/chat/sse`.
-2. `server/index.js` abre um SSE para o cliente.
-3. `CodexSessionProvider.streamChat()` monta o payload:
-
-```js
-{
-  model,
-  instructions,
-  input,
-  stream: true,
-  store
-}
-```
-
-4. O servidor chama o endpoint upstream `/responses`.
-5. `parseSseJson()` le os eventos SSE upstream.
-6. Eventos `response.output_text.delta` viram `text_delta` para o cliente.
-7. `response.completed` salva `responseId` e finaliza.
-
-## Historico Por Thread
-
-O provider mantem dois mapas em memoria:
-
-```js
-previousResponseByThread
-historyByThread
-```
-
-Para `OPENAI_API_KEY`, ele usa `previous_response_id` quando existe.
-
-Para `access_token` do ChatGPT/Codex, ele manda um historico curto manual:
-
-```js
-[
-  ...history,
-  { role: "user", content: request.text }
-]
-```
-
-Depois da resposta, salva os ultimos 12 itens.
-
-## Variaveis
+## Variaveis De Ambiente
 
 ```text
-PORT=8788
 HOST=127.0.0.1
+PORT=8788
 CODEX_MODEL=gpt-5.4-mini
 CODEX_AUTH_PATH=C:\...\codex-LLM\auth.json
+CODEX_CONFIG_PATH=C:\...\codex-LLM\config.toml
 CODEX_BASE_URL=https://chatgpt.com/backend-api/codex
 OPENAI_BASE_URL=https://api.openai.com/v1
 CODEX_INSTRUCTIONS=Voce e um assistente direto.
+MAX_SYSTEM_PROMPT_CHARS=12000
 MOCK_LLM=1
+STT_SCRIPT_PATH=C:\Users\Larri\Documents\PRGRAMACAO\stt\openya\stt-config-ok.py
+STT_SCRIPT_CWD=C:\Users\Larri\Documents\PRGRAMACAO\stt\openya
+STT_OUTPUT_PATH=C:\...\runtime\external-stt.txt
+STT_PYTHON=python
 ```
 
-## Arquivos Principais
+## Modo Mock
+
+Para testar o frontend e o SSE sem credenciais:
+
+```powershell
+$env:MOCK_LLM = "1"
+npm start
+```
+
+Ou:
+
+```bat
+npm run mock
+```
+
+## Estrutura
 
 ```text
-server/auth.js          carrega auth.json e auth-pool
-server/config.js        escolhe modelo e endpoints
-server/codexProvider.js chama /responses e faz fallback do pool
-server/upstreamSse.js   parseia SSE vindo da API
-server/outboundSse.js   escreve SSE para o cliente local
-server/index.js         HTTP server e endpoints
-public/index.html       tester web minimo
-public/chat.html        chat simples com historico em arquivo
-chats/*.json            conversas salvas localmente
+codex-LLM/
+  public/
+    chat.html                  chat principal
+    index.html                 tester SSE simples
+  server/
+    index.js                   servidor Express e rotas
+    auth.js                    auth unico e pool local
+    codexProvider.js           chamada /responses e SSE upstream
+    contextStore.js            prompt, vocabulario, persona e memoria
+    chatStore.js               persistencia dos chats
+    externalStt.js             ponte com STT Python
+    upstreamSse.js             parser SSE vindo da API
+    outboundSse.js             escritor SSE local
+  memory/
+    system_prompt.md
+    vocabulary.txt
+    persona.json
+    summary.json
+  chats/
+    *.json
+  auth-pool/
+    *.json
+  runtime/
+    external-stt.txt
 ```
+
+## Git
+
+Nao suba:
+
+```text
+node_modules/
+auth.json
+auth-pool/*.json
+chats/
+runtime/
+*.log
+```
+
+Tokens, cookies e historico local devem ficar fora do Git.
+
+## Troubleshooting
+
+Se o LLM responder `Nenhuma conta disponivel no pool local`:
+
+- veja se existe JSON em `auth-pool/`
+- confira se o token nao expirou
+- acesse `GET /api/auth/accounts`
+
+Se o microfone do navegador falhar:
+
+- use Chrome ou Edge
+- confira permissao do navegador
+- rode `run_codex_llm_with_stt.bat` para usar o STT Python
+
+Se o STT Python nao escrever texto:
+
+- confira se `token.txt` existe na pasta `openya`
+- rode `python stt-config-ok.py --no-meter` direto para ver erros
+- veja se `runtime/external-stt.txt` esta mudando
+
+Se o Node nao conseguir iniciar Python:
+
+- isso pode aparecer como `spawn EPERM`
+- rode `run_stt_sidecar.bat` separado
+- o chat ainda consegue ler o arquivo de saida do sidecar

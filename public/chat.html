@@ -669,6 +669,9 @@
     let sttListening = false;
     let sttBaseText = "";
     let sttFinalText = "";
+    let sttMode = "";
+    let externalSttTimer = null;
+    let externalSttCursor = 0;
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const chatSettings = {
       model: "gpt-5.4-mini",
@@ -1296,8 +1299,9 @@
       rec.maxAlternatives = 1;
 
       rec.onstart = () => {
+        sttMode = "browser";
         setMicActive(true);
-        setSttStatus("ouvindo");
+        setSttStatus("ouvindo pelo Chrome");
       };
 
       rec.onresult = (event) => {
@@ -1320,53 +1324,117 @@
           return;
         }
         if (event.error === "not-allowed") {
-          sttListening = false;
-          setMicActive(false);
-          setSttStatus("mic bloqueado");
+          fallbackToExternalStt("mic bloqueado no navegador");
           return;
         }
-        setSttStatus(`erro: ${event.error}`);
+        fallbackToExternalStt(`Chrome STT falhou: ${event.error}`);
       };
 
       rec.onend = () => {
-        if (sttListening) {
+        if (sttListening && sttMode === "browser") {
           setSttStatus("reiniciando");
           setTimeout(() => {
-            if (sttListening) {
+            if (sttListening && sttMode === "browser") {
               try { rec.start(); } catch (_) {}
             }
           }, 180);
           return;
         }
-        setMicActive(false);
-        setSttStatus("");
+        if (!sttListening) {
+          setMicActive(false);
+          setSttStatus("");
+        }
       };
 
       return rec;
     }
 
+    function stopExternalSttPolling() {
+      if (externalSttTimer) {
+        clearInterval(externalSttTimer);
+        externalSttTimer = null;
+      }
+    }
+
+    async function pollExternalStt() {
+      if (!sttListening || sttMode !== "external") return;
+      try {
+        const res = await fetch(`/api/stt/external/text?cursor=${externalSttCursor}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "falha lendo STT local");
+        externalSttCursor = data.cursor || 0;
+        sttFinalText = data.text || "";
+        composeSttText();
+      } catch (error) {
+        setSttStatus(`STT local erro: ${error.message || error}`);
+      }
+    }
+
+    async function startExternalStt(reason = "") {
+      sttMode = "external";
+      sttListening = true;
+      sttBaseText = inputEl.value.trim();
+      sttFinalText = "";
+      externalSttCursor = 0;
+      setMicActive(true);
+      setSttStatus(reason ? `${reason}; usando STT local` : "STT local iniciando");
+
+      try {
+        const res = await fetch("/api/stt/external/start", { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "falha iniciando STT local");
+        setSttStatus("ouvindo pelo Python");
+        stopExternalSttPolling();
+        externalSttTimer = setInterval(pollExternalStt, 350);
+        await pollExternalStt();
+      } catch (error) {
+        setSttStatus("STT Python separado: rode run_stt_sidecar.bat");
+        stopExternalSttPolling();
+        externalSttTimer = setInterval(pollExternalStt, 350);
+        await pollExternalStt();
+      }
+    }
+
+    function fallbackToExternalStt(reason) {
+      if (!sttListening || sttMode === "external") return;
+      sttMode = "";
+      if (recognition) {
+        try { recognition.stop(); } catch (_) {}
+      }
+      startExternalStt(reason);
+    }
+
     function startStt() {
+      if (sttListening) return;
+      sttBaseText = inputEl.value.trim();
+      sttFinalText = "";
+      sttListening = true;
       if (!SpeechRecognition) {
-        setSttStatus("STT indisponivel neste navegador");
+        startExternalStt("STT do navegador indisponivel");
         return;
       }
       if (!recognition) {
         recognition = buildRecognition();
       }
-      sttBaseText = inputEl.value.trim();
-      sttFinalText = "";
-      sttListening = true;
+      sttMode = "browser";
       setSttStatus("iniciando");
       try {
         recognition.start();
-      } catch (_) {}
+      } catch (_) {
+        fallbackToExternalStt("Chrome STT nao iniciou");
+      }
     }
 
     function stopStt() {
       sttListening = false;
+      stopExternalSttPolling();
+      if (sttMode === "external") {
+        fetch("/api/stt/external/stop", { method: "POST" }).catch(() => {});
+      }
       if (recognition) {
         try { recognition.stop(); } catch (_) {}
       }
+      sttMode = "";
       setMicActive(false);
       setSttStatus("");
       inputEl.focus();
